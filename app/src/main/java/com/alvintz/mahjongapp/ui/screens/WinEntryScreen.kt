@@ -5,8 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,7 +29,7 @@ import com.alvintz.mahjong.scoring.RuleSet
 import com.alvintz.mahjong.scoring.WinType
 import com.alvintz.mahjongapp.model.GameState
 import com.alvintz.mahjongapp.ui.components.HandBuilderState
-import com.alvintz.mahjongapp.ui.components.TileGridPicker
+import com.alvintz.mahjongapp.ui.components.tileGridPicker
 import com.alvintz.mahjongapp.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,128 +59,147 @@ fun WinEntryScreen(
     var hongKongOutcome by remember { mutableStateOf<HongKongScoringOutcome?>(null) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("${winner.name} wins") }) }) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = winType == WinType.TSUMO, onClick = { winType = WinType.TSUMO; isHoutei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Self-draw (Tsumo)") })
-                FilterChip(selected = winType == WinType.RON, onClick = { winType = WinType.RON; isHaitei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Discard (Ron)") })
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = winType == WinType.TSUMO, onClick = { winType = WinType.TSUMO; isHoutei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Self-draw (Tsumo)") })
+                    FilterChip(selected = winType == WinType.RON, onClick = { winType = WinType.RON; isHaitei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Discard (Ron)") })
+                }
             }
 
             if (winType == WinType.RON) {
-                Text("Who discarded?", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    others.forEach { p ->
-                        FilterChip(
-                            selected = loserSeat == p.seatIndex,
-                            onClick = { loserSeat = p.seatIndex },
-                            label = { Text(p.name) }
-                        )
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Who discarded?", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            others.forEach { p ->
+                                FilterChip(
+                                    selected = loserSeat == p.seatIndex,
+                                    onClick = { loserSeat = p.seatIndex },
+                                    label = { Text(p.name) }
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            FilterChip(selected = isClosed, onClick = { isClosed = !isClosed }, label = { Text(if (isClosed) "Closed hand" else "Open hand (has calls)") })
+            item {
+                FilterChip(selected = isClosed, onClick = { isClosed = !isClosed }, label = { Text(if (isClosed) "Closed hand" else "Open hand (has calls)") })
+            }
 
             if (state.ruleSet == RuleSet.JAPANESE) {
-                Text("Situational flags", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = isDoubleRiichi, onClick = { isDoubleRiichi = !isDoubleRiichi }, label = { Text("Double Riichi") })
-                    FilterChip(selected = isIppatsu, onClick = { isIppatsu = !isIppatsu }, label = { Text("Ippatsu") })
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = isRinshan, onClick = { isRinshan = !isRinshan }, label = { Text("Rinshan") })
-                    FilterChip(selected = isChankan, onClick = { isChankan = !isChankan }, label = { Text("Chankan") })
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (winType == WinType.TSUMO) {
-                        FilterChip(selected = isHaitei, onClick = { isHaitei = !isHaitei }, label = { Text("Haitei (last tile)") })
-                    } else {
-                        FilterChip(selected = isHoutei, onClick = { isHoutei = !isHoutei }, label = { Text("Houtei (last discard)") })
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Situational flags", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = isDoubleRiichi, onClick = { isDoubleRiichi = !isDoubleRiichi }, label = { Text("Double Riichi") })
+                            FilterChip(selected = isIppatsu, onClick = { isIppatsu = !isIppatsu }, label = { Text("Ippatsu") })
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = isRinshan, onClick = { isRinshan = !isRinshan }, label = { Text("Rinshan") })
+                            FilterChip(selected = isChankan, onClick = { isChankan = !isChankan }, label = { Text("Chankan") })
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (winType == WinType.TSUMO) {
+                                FilterChip(selected = isHaitei, onClick = { isHaitei = !isHaitei }, label = { Text("Haitei (last tile)") })
+                            } else {
+                                FilterChip(selected = isHoutei, onClick = { isHoutei = !isHoutei }, label = { Text("Houtei (last discard)") })
+                            }
+                        }
+                        if (winnerSeat in state.riichiDeclaredSeats) {
+                            Text("This player already declared Riichi this hand — it will be counted automatically.", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
-                }
-                if (winnerSeat in state.riichiDeclaredSeats) {
-                    Text("This player already declared Riichi this hand — it will be counted automatically.", style = MaterialTheme.typography.bodySmall)
                 }
             }
 
-            TileGridPicker(handState)
+            tileGridPicker(handState)
 
-            Button(
-                onClick = {
-                    if (state.ruleSet == RuleSet.JAPANESE) {
-                        japaneseOutcome = viewModel.evaluateJapaneseWin(
-                            GameViewModel.JapaneseWinRequest(
-                                winnerSeat = winnerSeat,
-                                loserSeat = if (winType == WinType.RON) loserSeat else null,
-                                handTiles = handState.selected.toList(),
-                                winningTile = handState.winningTile!!,
-                                winType = winType,
-                                isClosed = isClosed,
-                                isDoubleRiichi = isDoubleRiichi,
-                                isIppatsu = isIppatsu,
-                                isHaitei = isHaitei,
-                                isHoutei = isHoutei,
-                                isRinshan = isRinshan,
-                                isChankan = isChankan,
-                                uraDoraIndicators = emptyList()
+            item {
+                Button(
+                    onClick = {
+                        if (state.ruleSet == RuleSet.JAPANESE) {
+                            japaneseOutcome = viewModel.evaluateJapaneseWin(
+                                GameViewModel.JapaneseWinRequest(
+                                    winnerSeat = winnerSeat,
+                                    loserSeat = if (winType == WinType.RON) loserSeat else null,
+                                    handTiles = handState.selected.toList(),
+                                    winningTile = handState.winningTile!!,
+                                    winType = winType,
+                                    isClosed = isClosed,
+                                    isDoubleRiichi = isDoubleRiichi,
+                                    isIppatsu = isIppatsu,
+                                    isHaitei = isHaitei,
+                                    isHoutei = isHoutei,
+                                    isRinshan = isRinshan,
+                                    isChankan = isChankan,
+                                    uraDoraIndicators = emptyList()
+                                )
                             )
-                        )
-                    } else {
-                        hongKongOutcome = viewModel.evaluateHongKongWin(
-                            GameViewModel.HongKongWinRequest(
-                                winnerSeat = winnerSeat,
-                                loserSeat = if (winType == WinType.RON) loserSeat else null,
-                                handTiles = handState.selected.toList(),
-                                winningTile = handState.winningTile!!,
-                                winType = winType,
-                                isClosed = isClosed
+                        } else {
+                            hongKongOutcome = viewModel.evaluateHongKongWin(
+                                GameViewModel.HongKongWinRequest(
+                                    winnerSeat = winnerSeat,
+                                    loserSeat = if (winType == WinType.RON) loserSeat else null,
+                                    handTiles = handState.selected.toList(),
+                                    winningTile = handState.winningTile!!,
+                                    winType = winType,
+                                    isClosed = isClosed
+                                )
                             )
-                        )
-                    }
-                },
-                enabled = handState.isComplete && (winType == WinType.TSUMO || loserSeat != null),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Calculate Score")
+                        }
+                    },
+                    enabled = handState.isComplete && (winType == WinType.TSUMO || loserSeat != null),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Calculate Score")
+                }
             }
 
             japaneseOutcome?.let { outcome ->
-                JapaneseResultCard(outcome) {
-                    if (outcome is JapaneseScoringOutcome.Success) {
-                        viewModel.applyJapaneseWin(
-                            GameViewModel.JapaneseWinRequest(
-                                winnerSeat, if (winType == WinType.RON) loserSeat else null,
-                                handState.selected.toList(), handState.winningTile!!, winType, isClosed,
-                                isDoubleRiichi, isIppatsu, isHaitei, isHoutei, isRinshan, isChankan, emptyList()
-                            ),
-                            outcome.result
-                        )
-                        onDone()
+                item {
+                    JapaneseResultCard(outcome) {
+                        if (outcome is JapaneseScoringOutcome.Success) {
+                            viewModel.applyJapaneseWin(
+                                GameViewModel.JapaneseWinRequest(
+                                    winnerSeat, if (winType == WinType.RON) loserSeat else null,
+                                    handState.selected.toList(), handState.winningTile!!, winType, isClosed,
+                                    isDoubleRiichi, isIppatsu, isHaitei, isHoutei, isRinshan, isChankan, emptyList()
+                                ),
+                                outcome.result
+                            )
+                            onDone()
+                        }
                     }
                 }
             }
             hongKongOutcome?.let { outcome ->
-                HongKongResultCard(outcome) {
-                    if (outcome is HongKongScoringOutcome.Success) {
-                        viewModel.applyHongKongWin(
-                            GameViewModel.HongKongWinRequest(
-                                winnerSeat, if (winType == WinType.RON) loserSeat else null,
-                                handState.selected.toList(), handState.winningTile!!, winType, isClosed
-                            ),
-                            outcome.result
-                        )
-                        onDone()
+                item {
+                    HongKongResultCard(outcome) {
+                        if (outcome is HongKongScoringOutcome.Success) {
+                            viewModel.applyHongKongWin(
+                                GameViewModel.HongKongWinRequest(
+                                    winnerSeat, if (winType == WinType.RON) loserSeat else null,
+                                    handState.selected.toList(), handState.winningTile!!, winType, isClosed
+                                ),
+                                outcome.result
+                            )
+                            onDone()
+                        }
                     }
                 }
             }
 
-            Button(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+            item {
+                Button(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+            }
         }
     }
 }

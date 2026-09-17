@@ -1,7 +1,8 @@
-@file:OptIn(ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 
 package com.alvintz.mahjongapp.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,9 +13,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
@@ -85,8 +89,8 @@ private val SOU_DRAWABLES = intArrayOf(
 )
 
 /** SVG artwork from https://github.com/samoheen/mahjong-tiles (hongkong/svg), converted to
- * Android vector drawables. Red fives reuse the plain 5 tile's artwork, distinguished only by
- * the "0" caption, per the same convention used elsewhere in this app's notation. */
+ * Android vector drawables. Red fives reuse the plain 5 tile's artwork - the "red five" flag is
+ * only distinguished by which button/chip you tapped, not by a caption. */
 private fun tileDrawable(suit: Suit, rank: Int): Int = when (suit) {
     Suit.MAN -> MAN_DRAWABLES[rank - 1]
     Suit.PIN -> PIN_DRAWABLES[rank - 1]
@@ -102,17 +106,10 @@ private fun tileDrawable(suit: Suit, rank: Int): Int = when (suit) {
     }
 }
 
-private fun tileCaption(suit: Suit, rank: Int): String = when (suit) {
-    Suit.HONOR -> listOf("E", "S", "W", "N", "Wh", "Gr", "Rd")[rank - 1]
-    else -> "$rank${suitSuffix(suit)}"
-}
-
-private fun suitSuffix(suit: Suit): String = when (suit) {
-    Suit.MAN -> "m"
-    Suit.PIN -> "p"
-    Suit.SOU -> "s"
-    Suit.HONOR -> ""
-}
+/** The artwork alone identifies every tile except the four winds, which all look like a
+ * character on a similar plain tile — so only winds get a caption (E/S/W/N). */
+private fun tileCaptionOrNull(suit: Suit, rank: Int): String? =
+    if (suit == Suit.HONOR && rank in 1..4) listOf("E", "S", "W", "N")[rank - 1] else null
 
 /**
  * The tile artwork is ink drawn for a physical ivory tile face, so its background must stay a
@@ -125,27 +122,44 @@ private val TileFaceHighlightColor = Color(0xFFFFD54F)
 private val TileBorderColor = Color(0xFF8A7A52)
 private val TileTextColor = Color(0xFF3E2E17)
 
-@Composable
-fun TileGridPicker(state: HandBuilderState, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text("Tap tiles to build the 14-tile hand (${state.selected.size}/14)", style = MaterialTheme.typography.labelLarge)
-        Box(Modifier.padding(vertical = 8.dp)) {
-            SelectedHandTray(state)
+/**
+ * Adds the tile picker to a [LazyListScope] with its "Tap tiles..." header pinned to the top of
+ * the viewport while the tile sections scroll underneath, so it stays visible during scrolling.
+ */
+fun LazyListScope.tileGridPicker(state: HandBuilderState) {
+    stickyHeader {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Tap tiles to build the 14-tile hand (${state.selected.size}/14)", style = MaterialTheme.typography.labelLarge)
         }
-        Divider()
-
-        TileSection(title = "Chinese Number", tiles = (1..9).map { Suit.MAN to it }, state = state)
-        TileSection(title = "Bamboo", tiles = (1..9).map { Suit.SOU to it }, state = state)
-        TileSection(title = "Dot", tiles = (1..9).map { Suit.PIN to it }, state = state)
-        TileSection(title = "Dragon", tiles = listOf(Suit.HONOR to 5, Suit.HONOR to 6, Suit.HONOR to 7), state = state)
-        TileSection(title = "Winds", tiles = (1..4).map { Suit.HONOR to it }, state = state)
-        RedFiveSection(state)
-
-        if (state.selected.size == 14) {
-            Divider(Modifier.padding(vertical = 8.dp))
-            Text("Which tile did you win on?", style = MaterialTheme.typography.labelLarge)
-            WinningTilePicker(state)
+    }
+    item {
+        Column {
+            Box(Modifier.padding(vertical = 8.dp)) {
+                SelectedHandTray(state)
+            }
+            Divider()
         }
+    }
+    item { TileSection(title = "Chinese Number", tiles = (1..9).map { Suit.MAN to it }, state = state) }
+    item { TileSection(title = "Bamboo", tiles = (1..9).map { Suit.SOU to it }, state = state) }
+    item { TileSection(title = "Dot", tiles = (1..9).map { Suit.PIN to it }, state = state) }
+    item { TileSection(title = "Dragon", tiles = listOf(Suit.HONOR to 5, Suit.HONOR to 6, Suit.HONOR to 7), state = state) }
+    item { TileSection(title = "Winds", tiles = (1..4).map { Suit.HONOR to it }, state = state) }
+    item { RedFiveSection(state) }
+
+    if (state.selected.size == 14) {
+        item {
+            Column {
+                Divider(Modifier.padding(vertical = 8.dp))
+                Text("Which tile did you win on?", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        item { WinningTilePicker(state) }
     }
 }
 
@@ -160,8 +174,8 @@ private fun TileSection(title: String, tiles: List<Pair<Suit, Int>>, state: Hand
                     val count = state.totalCountOf(suit, rank)
                     TileButton(
                         drawableRes = tileDrawable(suit, rank),
-                        caption = tileCaption(suit, rank),
-                        count = count,
+                        caption = tileCaptionOrNull(suit, rank),
+                        selected = count > 0,
                         onClick = { state.add(Tile(suit, rank)) }
                     )
                 }
@@ -179,8 +193,8 @@ private fun RedFiveSection(state: HandBuilderState) {
                 val count = state.countOf(suit, 5, red = true)
                 TileButton(
                     drawableRes = tileDrawable(suit, 5),
-                    caption = "0${suitSuffix(suit)}",
-                    count = count,
+                    caption = null,
+                    selected = count > 0,
                     onClick = { state.add(Tile(suit, 5, isRedFive = true)) }
                 )
             }
@@ -195,7 +209,7 @@ private fun SelectedHandTray(state: HandBuilderState) {
             val isWinning = state.winningTile?.let { it.suit == tile.suit && it.rank == tile.rank } == true
             TileChip(
                 drawableRes = tileDrawable(tile.suit, tile.rank),
-                caption = if (tile.isRedFive) "0${suitSuffix(tile.suit)}" else tileCaption(tile.suit, tile.rank),
+                caption = tileCaptionOrNull(tile.suit, tile.rank),
                 highlighted = isWinning,
                 onClick = { state.removeOne(tile.suit, tile.rank, tile.isRedFive) }
             )
@@ -211,7 +225,7 @@ private fun WinningTilePicker(state: HandBuilderState) {
             val isSelected = state.winningTile?.let { it.suit == suit && it.rank == rank } == true
             TileChip(
                 drawableRes = tileDrawable(suit, rank),
-                caption = tileCaption(suit, rank),
+                caption = tileCaptionOrNull(suit, rank),
                 highlighted = isSelected,
                 onClick = { state.winningTile = Tile(suit, rank) }
             )
@@ -220,13 +234,13 @@ private fun WinningTilePicker(state: HandBuilderState) {
 }
 
 @Composable
-private fun TileButton(drawableRes: Int, caption: String, count: Int, onClick: () -> Unit) {
+private fun TileButton(drawableRes: Int, caption: String?, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .width(52.dp)
             .clickable(onClick = onClick)
             .background(
-                if (count > 0) TileFaceSelectedColor else TileFaceColor,
+                if (selected) TileFaceSelectedColor else TileFaceColor,
                 RoundedCornerShape(6.dp)
             )
             .border(1.dp, TileBorderColor, RoundedCornerShape(6.dp))
@@ -239,14 +253,13 @@ private fun TileButton(drawableRes: Int, caption: String, count: Int, onClick: (
                 contentDescription = caption,
                 modifier = Modifier.size(width = 28.dp, height = 39.dp)
             )
-            Text(caption, color = TileTextColor, fontSize = 10.sp)
-            if (count > 0) Text("x$count", color = TileTextColor, fontSize = 9.sp)
+            if (caption != null) Text(caption, color = TileTextColor, fontSize = 10.sp)
         }
     }
 }
 
 @Composable
-private fun TileChip(drawableRes: Int, caption: String, highlighted: Boolean, onClick: () -> Unit) {
+private fun TileChip(drawableRes: Int, caption: String?, highlighted: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clickable(onClick = onClick)
@@ -264,7 +277,7 @@ private fun TileChip(drawableRes: Int, caption: String, highlighted: Boolean, on
                 contentDescription = caption,
                 modifier = Modifier.size(width = 24.dp, height = 34.dp)
             )
-            Text(caption, color = TileTextColor, fontSize = 9.sp)
+            if (caption != null) Text(caption, color = TileTextColor, fontSize = 9.sp)
         }
     }
 }

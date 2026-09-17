@@ -5,8 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,7 +29,7 @@ import com.alvintz.mahjong.scoring.RuleSet
 import com.alvintz.mahjong.scoring.WinType
 import com.alvintz.mahjongapp.model.GameState
 import com.alvintz.mahjongapp.ui.components.HandBuilderState
-import com.alvintz.mahjongapp.ui.components.TileGridPicker
+import com.alvintz.mahjongapp.ui.components.tileGridPicker
 import com.alvintz.mahjongapp.viewmodel.GameViewModel
 
 /**
@@ -61,110 +60,127 @@ fun CheckWinningTileScreen(
     var hongKongOutcome by remember { mutableStateOf<HongKongScoringOutcome?>(null) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Check Winning Tile") }) }) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val validityHint = if (state.ruleSet == RuleSet.HONG_KONG) {
-                "at least ${state.hkMinFanToWin} fan"
-            } else {
-                "at least one yaku"
+            item {
+                val validityHint = if (state.ruleSet == RuleSet.HONG_KONG) {
+                    "at least ${state.hkMinFanToWin} fan"
+                } else {
+                    "at least one yaku"
+                }
+                Text(
+                    "Build a candidate hand to see if it would actually be a valid win ($validityHint) " +
+                        "before declaring — nothing here affects scores.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-            Text(
-                "Build a candidate hand to see if it would actually be a valid win ($validityHint) " +
-                    "before declaring — nothing here affects scores.",
-                style = MaterialTheme.typography.bodyMedium
-            )
 
-            Text("Checking for", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.players.forEach { p ->
-                    FilterChip(
-                        selected = checkingSeat == p.seatIndex,
-                        onClick = { checkingSeat = p.seatIndex; japaneseOutcome = null; hongKongOutcome = null },
-                        label = { Text(p.name) }
-                    )
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Checking for", style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.players.forEach { p ->
+                            FilterChip(
+                                selected = checkingSeat == p.seatIndex,
+                                onClick = { checkingSeat = p.seatIndex; japaneseOutcome = null; hongKongOutcome = null },
+                                label = { Text(p.name) }
+                            )
+                        }
+                    }
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = winType == WinType.TSUMO, onClick = { winType = WinType.TSUMO; isHoutei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Self-draw (Tsumo)") })
-                FilterChip(selected = winType == WinType.RON, onClick = { winType = WinType.RON; isHaitei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Discard (Ron)") })
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = winType == WinType.TSUMO, onClick = { winType = WinType.TSUMO; isHoutei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Self-draw (Tsumo)") })
+                    FilterChip(selected = winType == WinType.RON, onClick = { winType = WinType.RON; isHaitei = false; japaneseOutcome = null; hongKongOutcome = null }, label = { Text("Discard (Ron)") })
+                }
             }
 
-            FilterChip(selected = isClosed, onClick = { isClosed = !isClosed }, label = { Text(if (isClosed) "Closed hand" else "Open hand (has calls)") })
+            item {
+                FilterChip(selected = isClosed, onClick = { isClosed = !isClosed }, label = { Text(if (isClosed) "Closed hand" else "Open hand (has calls)") })
+            }
 
             if (state.ruleSet == RuleSet.JAPANESE) {
-                Text("Situational flags", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = isDoubleRiichi, onClick = { isDoubleRiichi = !isDoubleRiichi }, label = { Text("Double Riichi") })
-                    FilterChip(selected = isIppatsu, onClick = { isIppatsu = !isIppatsu }, label = { Text("Ippatsu") })
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = isRinshan, onClick = { isRinshan = !isRinshan }, label = { Text("Rinshan") })
-                    FilterChip(selected = isChankan, onClick = { isChankan = !isChankan }, label = { Text("Chankan") })
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (winType == WinType.TSUMO) {
-                        FilterChip(selected = isHaitei, onClick = { isHaitei = !isHaitei }, label = { Text("Haitei (last tile)") })
-                    } else {
-                        FilterChip(selected = isHoutei, onClick = { isHoutei = !isHoutei }, label = { Text("Houtei (last discard)") })
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Situational flags", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = isDoubleRiichi, onClick = { isDoubleRiichi = !isDoubleRiichi }, label = { Text("Double Riichi") })
+                            FilterChip(selected = isIppatsu, onClick = { isIppatsu = !isIppatsu }, label = { Text("Ippatsu") })
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = isRinshan, onClick = { isRinshan = !isRinshan }, label = { Text("Rinshan") })
+                            FilterChip(selected = isChankan, onClick = { isChankan = !isChankan }, label = { Text("Chankan") })
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (winType == WinType.TSUMO) {
+                                FilterChip(selected = isHaitei, onClick = { isHaitei = !isHaitei }, label = { Text("Haitei (last tile)") })
+                            } else {
+                                FilterChip(selected = isHoutei, onClick = { isHoutei = !isHoutei }, label = { Text("Houtei (last discard)") })
+                            }
+                        }
+                        if (checkingSeat in state.riichiDeclaredSeats) {
+                            Text("This player already declared Riichi this hand — it will be counted automatically.", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
-                }
-                if (checkingSeat in state.riichiDeclaredSeats) {
-                    Text("This player already declared Riichi this hand — it will be counted automatically.", style = MaterialTheme.typography.bodySmall)
                 }
             }
 
-            TileGridPicker(handState)
+            tileGridPicker(handState)
 
-            Button(
-                onClick = {
-                    if (state.ruleSet == RuleSet.JAPANESE) {
-                        japaneseOutcome = viewModel.evaluateJapaneseWin(
-                            GameViewModel.JapaneseWinRequest(
-                                winnerSeat = checkingSeat,
-                                loserSeat = null,
-                                handTiles = handState.selected.toList(),
-                                winningTile = handState.winningTile!!,
-                                winType = winType,
-                                isClosed = isClosed,
-                                isDoubleRiichi = isDoubleRiichi,
-                                isIppatsu = isIppatsu,
-                                isHaitei = isHaitei,
-                                isHoutei = isHoutei,
-                                isRinshan = isRinshan,
-                                isChankan = isChankan,
-                                uraDoraIndicators = emptyList()
+            item {
+                Button(
+                    onClick = {
+                        if (state.ruleSet == RuleSet.JAPANESE) {
+                            japaneseOutcome = viewModel.evaluateJapaneseWin(
+                                GameViewModel.JapaneseWinRequest(
+                                    winnerSeat = checkingSeat,
+                                    loserSeat = null,
+                                    handTiles = handState.selected.toList(),
+                                    winningTile = handState.winningTile!!,
+                                    winType = winType,
+                                    isClosed = isClosed,
+                                    isDoubleRiichi = isDoubleRiichi,
+                                    isIppatsu = isIppatsu,
+                                    isHaitei = isHaitei,
+                                    isHoutei = isHoutei,
+                                    isRinshan = isRinshan,
+                                    isChankan = isChankan,
+                                    uraDoraIndicators = emptyList()
+                                )
                             )
-                        )
-                    } else {
-                        hongKongOutcome = viewModel.evaluateHongKongWin(
-                            GameViewModel.HongKongWinRequest(
-                                winnerSeat = checkingSeat,
-                                loserSeat = null,
-                                handTiles = handState.selected.toList(),
-                                winningTile = handState.winningTile!!,
-                                winType = winType,
-                                isClosed = isClosed
+                        } else {
+                            hongKongOutcome = viewModel.evaluateHongKongWin(
+                                GameViewModel.HongKongWinRequest(
+                                    winnerSeat = checkingSeat,
+                                    loserSeat = null,
+                                    handTiles = handState.selected.toList(),
+                                    winningTile = handState.winningTile!!,
+                                    winType = winType,
+                                    isClosed = isClosed
+                                )
                             )
-                        )
-                    }
-                },
-                enabled = handState.isComplete,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Check")
+                        }
+                    },
+                    enabled = handState.isComplete,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Check")
+                }
             }
 
-            japaneseOutcome?.let { CheckResultCard(it) }
-            hongKongOutcome?.let { CheckResultCard(it, state.hkMinFanToWin) }
+            japaneseOutcome?.let { outcome -> item { CheckResultCard(outcome) } }
+            hongKongOutcome?.let { outcome -> item { CheckResultCard(outcome, state.hkMinFanToWin) } }
 
-            Button(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Close") }
+            item {
+                Button(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Close") }
+            }
         }
     }
 }
