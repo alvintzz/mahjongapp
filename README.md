@@ -71,6 +71,49 @@ This was developed in a sandboxed environment without access to Google's Maven r
 (`dl.google.com`), so the Android Gradle Plugin, AndroixX/Compose/Room artifacts could not
 be resolved or compiled here — only the dependency-light `:scoring` module could be built
 and tested (`./gradlew :scoring:test`, passing). The `:app` module's Kotlin/Compose code
-was written and reviewed carefully but **has not been compiled**. To build the full app,
-open the project in Android Studio (or run `./gradlew assembleDebug`) somewhere with normal
-internet access; standard first-build dependency resolution is all that's required.
+was written and reviewed carefully but **has not been compiled**. Build it the first time
+somewhere with normal internet access (see below); standard first-build dependency
+resolution is all that's required, no special setup.
+
+### Option A — Android Studio (easiest, recommended)
+
+1. Install [Android Studio](https://developer.android.com/studio) if you don't have it.
+2. `File → Open`, pick the cloned `mahjongapp` repo root (the folder with `settings.gradle.kts`).
+3. Let Gradle sync finish (first sync downloads dependencies — needs internet, takes a
+   few minutes). If it complains about an Android SDK, use `Tools → SDK Manager` to
+   install one — Android Studio does this automatically on first run for most people.
+4. Connect your phone:
+   - On the phone: **Settings → About phone**, tap "Build number" 7 times to unlock
+     Developer Options, then **Settings → Developer options → USB debugging** (enable it).
+   - Plug the phone into your computer with a USB cable. A prompt appears on the phone
+     asking to allow USB debugging from this computer — accept it.
+5. In Android Studio's toolbar, pick your phone from the device dropdown (top, next to
+   the green ▶ Run button), then click ▶ **Run 'app'**. It builds, installs, and launches
+   on your phone automatically.
+
+No cable? Use Wi-Fi debugging instead: **Developer options → Wireless debugging**, then in
+Android Studio `Device Manager → Pair Devices Using Wi-Fi` and follow the on-screen pairing
+code.
+
+### Option B — command line (`gradlew` + `adb`)
+
+Requires the [Android command-line tools](https://developer.android.com/studio#command-tools)
+or a full Android Studio install (for `adb`), plus USB debugging enabled on the phone as in
+step 4 above.
+
+```bash
+cd mahjongapp
+./gradlew assembleDebug        # builds app/build/outputs/apk/debug/app-debug.apk
+adb devices                    # confirm your phone shows up (accept the USB-debugging prompt if asked)
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+Then find "Mahjong Scorer" in your phone's app drawer.
+
+### Notes
+
+- No Google Play / signing setup needed for this — it's a debug build for your own device.
+- The app requests no special permissions and never touches the network, so there's nothing
+  else to configure.
+- If Gradle sync fails on unfamiliar SDK/build-tools versions, let Android Studio's prompt
+  auto-install the missing pieces rather than editing version numbers by hand.
