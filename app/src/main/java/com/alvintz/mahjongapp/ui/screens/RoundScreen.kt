@@ -8,14 +8,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -23,14 +25,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alvintz.mahjong.scoring.RuleSet
@@ -38,10 +41,13 @@ import com.alvintz.mahjong.scoring.Wind
 import com.alvintz.mahjongapp.model.GameState
 import com.alvintz.mahjongapp.model.PlayerState
 
+private val dealerYellow = Color(0xFFFFD54F)
+private val dealerOnYellow = Color(0xFF3E2723)
+
 /**
- * A mahjong-table layout: North at top, East on the right, South at the bottom, West on the
- * left — the standard compass arrangement — with round info in the middle. All four seats use
- * the same card design; only the dealer badge and rank number distinguish them.
+ * A 2x2 grid of seat cards (North/East on top, West/South on bottom) with a full-width round
+ * info card above it. All four seats use the same card design; only the dealer's yellow
+ * background and the rank number distinguish them.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,13 +69,17 @@ fun RoundScreen(
     val byWind = state.players.associateBy { state.windOf(it.seatIndex) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Mahjong Scorer") }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(12.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            RoundInfoCard(state = state, onEditDora = onEditDora)
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 byWind[Wind.NORTH]?.let { player ->
                     SeatCard(
                         state = state,
@@ -78,21 +88,9 @@ fun RoundScreen(
                         rank = rankOf.getValue(player.seatIndex),
                         onWin = { onWin(player.seatIndex) },
                         onDeclareRiichi = { onDeclareRiichi(player.seatIndex) },
-                        modifier = Modifier.align(Alignment.TopCenter)
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                byWind[Wind.WEST]?.let { player ->
-                    SeatCard(
-                        state = state,
-                        player = player,
-                        wind = Wind.WEST,
-                        rank = rankOf.getValue(player.seatIndex),
-                        onWin = { onWin(player.seatIndex) },
-                        onDeclareRiichi = { onDeclareRiichi(player.seatIndex) },
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    )
-                }
-                RoundInfoCard(state = state, onEditDora = onEditDora, modifier = Modifier.align(Alignment.Center))
                 byWind[Wind.EAST]?.let { player ->
                     SeatCard(
                         state = state,
@@ -101,7 +99,20 @@ fun RoundScreen(
                         rank = rankOf.getValue(player.seatIndex),
                         onWin = { onWin(player.seatIndex) },
                         onDeclareRiichi = { onDeclareRiichi(player.seatIndex) },
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                byWind[Wind.WEST]?.let { player ->
+                    SeatCard(
+                        state = state,
+                        player = player,
+                        wind = Wind.WEST,
+                        rank = rankOf.getValue(player.seatIndex),
+                        onWin = { onWin(player.seatIndex) },
+                        onDeclareRiichi = { onDeclareRiichi(player.seatIndex) },
+                        modifier = Modifier.weight(1f)
                     )
                 }
                 byWind[Wind.SOUTH]?.let { player ->
@@ -112,17 +123,12 @@ fun RoundScreen(
                         rank = rankOf.getValue(player.seatIndex),
                         onWin = { onWin(player.seatIndex) },
                         onDeclareRiichi = { onDeclareRiichi(player.seatIndex) },
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onCheckWinningTile, modifier = Modifier.fillMaxWidth()) {
                     Text("Check Winning Tile")
                 }
@@ -163,32 +169,37 @@ private fun windKanji(wind: Wind): String = when (wind) {
 }
 
 @Composable
-private fun RoundInfoCard(state: GameState, onEditDora: () -> Unit, modifier: Modifier = Modifier) {
+private fun RoundInfoCard(state: GameState, onEditDora: () -> Unit) {
     Card(
-        modifier = modifier.width(150.dp),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("ROUND", style = MaterialTheme.typography.labelSmall)
-            Text(
-                "${windKanji(state.roundWind)}${state.handNumber}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (state.honba > 0) {
-                Text("Honba: ${state.honba}", style = MaterialTheme.typography.labelMedium)
+            Column {
+                Text("ROUND", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "${windKanji(state.roundWind)}${state.handNumber}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (state.honba > 0) {
+                    Text("Honba: ${state.honba}", style = MaterialTheme.typography.labelMedium)
+                }
             }
             if (state.ruleSet == RuleSet.JAPANESE) {
-                Text(
-                    if (state.doraIndicators.isEmpty()) "Dora: none" else "Dora: ${state.doraIndicators.joinToString(", ") { it.toString() }}",
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center
-                )
-                TextButton(onClick = onEditDora) { Text("Edit Dora") }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        if (state.doraIndicators.isEmpty()) "Dora: none" else "Dora: ${state.doraIndicators.joinToString(", ") { it.toString() }}",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    TextButton(onClick = onEditDora) { Text("Edit Dora") }
+                }
             }
         }
     }
@@ -209,46 +220,60 @@ private fun SeatCard(
         player.seatIndex !in state.riichiDeclaredSeats &&
         player.score >= 1000
 
-    Card(modifier = modifier.width(165.dp)) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(windKanji(wind), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    }
-                    if (isDealer) {
+    Card(
+        modifier = modifier,
+        colors = if (isDealer) {
+            CardDefaults.cardColors(containerColor = dealerYellow)
+        } else {
+            CardDefaults.cardColors()
+        }
+    ) {
+        CompositionLocalProvider(LocalContentColor provides if (isDealer) dealerOnYellow else LocalContentColor.current) {
+            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(
                             modifier = Modifier
-                                .background(MaterialTheme.colorScheme.error, RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                "DEALER",
-                                color = MaterialTheme.colorScheme.onError,
-                                fontSize = 10.sp,
+                                windKanji(wind),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                        if (isDealer) {
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.error, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "DEALER",
+                                    color = MaterialTheme.colorScheme.onError,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
+                    Text(if (rank == 1) "#1 Leader" else "#$rank", style = MaterialTheme.typography.labelSmall)
                 }
-                Text(if (rank == 1) "#1 Leader" else "#$rank", style = MaterialTheme.typography.labelSmall)
-            }
 
-            Text(player.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("${player.score} pts", style = MaterialTheme.typography.headlineSmall)
+                Text(player.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("${player.score} pts", style = MaterialTheme.typography.headlineSmall)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onWin, modifier = Modifier.weight(1f)) { Text("WIN") }
-                if (canDeclareRiichi) {
-                    OutlinedButton(onClick = onDeclareRiichi) { Text("Riichi") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Button(onClick = onWin, modifier = Modifier.weight(1f)) { Text("WIN") }
+                    if (canDeclareRiichi) {
+                        OutlinedButton(onClick = onDeclareRiichi) { Text("Riichi") }
+                    }
                 }
             }
         }
