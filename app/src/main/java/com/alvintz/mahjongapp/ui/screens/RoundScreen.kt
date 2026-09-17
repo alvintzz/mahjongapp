@@ -35,6 +35,7 @@ import com.alvintz.mahjongapp.model.GameState
 fun RoundScreen(
     state: GameState,
     onWin: (winnerSeat: Int) -> Unit,
+    onCheckWinningTile: () -> Unit,
     onDraw: () -> Unit,
     onDeclareRiichi: (seatIndex: Int) -> Unit,
     onEditDora: () -> Unit,
@@ -73,6 +74,9 @@ fun RoundScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onCheckWinningTile, modifier = Modifier.fillMaxWidth()) {
+                Text("Check Winning Tile")
+            }
             OutlinedButton(onClick = onDraw, modifier = Modifier.fillMaxWidth()) {
                 Text("Exhaustive Draw (no winner)")
             }

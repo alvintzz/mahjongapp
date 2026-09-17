@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.alvintz.mahjong.scoring.RuleSet
 import com.alvintz.mahjongapp.data.GameRepository
+import com.alvintz.mahjongapp.ui.screens.CheckWinningTileScreen
 import com.alvintz.mahjongapp.ui.screens.DoraEditScreen
 import com.alvintz.mahjongapp.ui.screens.DrawScreen
 import com.alvintz.mahjongapp.ui.screens.HistoryScreen
@@ -80,6 +81,7 @@ fun MahjongApp(repository: GameRepository) {
                 RoundScreen(
                     state = current,
                     onWin = { seat -> navController.navigate("win_entry/$seat") },
+                    onCheckWinningTile = { navController.navigate("check_winning_tile") },
                     onDraw = { navController.navigate("draw") },
                     onDeclareRiichi = { seat -> viewModel.declareRiichi(seat) },
                     onEditDora = { navController.navigate("dora_edit") },
@@ -87,6 +89,18 @@ fun MahjongApp(repository: GameRepository) {
                         viewModel.endGame()
                         navController.navigate("home") { popUpTo("home") { inclusive = true } }
                     }
+                )
+            }
+        }
+        composable("check_winning_tile") {
+            val current = game
+            if (current == null) {
+                navigateHomeOnce(navController)
+            } else {
+                CheckWinningTileScreen(
+                    state = current,
+                    viewModel = viewModel,
+                    onCancel = { navController.popBackStack() }
                 )
             }
         }
