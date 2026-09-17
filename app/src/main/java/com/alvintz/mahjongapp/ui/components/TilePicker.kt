@@ -2,6 +2,7 @@
 
 package com.alvintz.mahjongapp.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +11,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Divider
@@ -23,10 +26,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alvintz.mahjongapp.R
 import com.alvintz.mahjong.scoring.Suit
 import com.alvintz.mahjong.scoring.Tile
 
@@ -64,28 +67,38 @@ class HandBuilderState {
     }
 }
 
-/**
- * The real Unicode Mahjong Tile glyphs (U+1F000-U+1F021), e.g. 🀇🀈🀉 for characters,
- * 🀐🀑🀒 for bamboos, 🀙🀚🀛 for circles — same tiles pictured on
- * https://www.alt-codes.net/mahjong-tiles-symbols.php. Shown big as the primary visual,
- * with a small text caption underneath for players who don't yet recognize them by eye.
- */
-private fun tileGlyph(suit: Suit, rank: Int): String {
-    val codepoint = when (suit) {
-        Suit.MAN -> 0x1F006 + rank // 1F007 (1m) .. 1F00F (9m)
-        Suit.SOU -> 0x1F00F + rank // 1F010 (1s) .. 1F018 (9s)
-        Suit.PIN -> 0x1F018 + rank // 1F019 (1p) .. 1F021 (9p)
-        Suit.HONOR -> when (rank) {
-            1 -> 0x1F000 // East
-            2 -> 0x1F001 // South
-            3 -> 0x1F002 // West
-            4 -> 0x1F003 // North
-            5 -> 0x1F006 // White dragon
-            6 -> 0x1F005 // Green dragon
-            else -> 0x1F004 // Red dragon (rank 7)
-        }
+private val MAN_DRAWABLES = intArrayOf(
+    R.drawable.tile_man_1, R.drawable.tile_man_2, R.drawable.tile_man_3,
+    R.drawable.tile_man_4, R.drawable.tile_man_5, R.drawable.tile_man_6,
+    R.drawable.tile_man_7, R.drawable.tile_man_8, R.drawable.tile_man_9
+)
+private val PIN_DRAWABLES = intArrayOf(
+    R.drawable.tile_pin_1, R.drawable.tile_pin_2, R.drawable.tile_pin_3,
+    R.drawable.tile_pin_4, R.drawable.tile_pin_5, R.drawable.tile_pin_6,
+    R.drawable.tile_pin_7, R.drawable.tile_pin_8, R.drawable.tile_pin_9
+)
+private val SOU_DRAWABLES = intArrayOf(
+    R.drawable.tile_sou_1, R.drawable.tile_sou_2, R.drawable.tile_sou_3,
+    R.drawable.tile_sou_4, R.drawable.tile_sou_5, R.drawable.tile_sou_6,
+    R.drawable.tile_sou_7, R.drawable.tile_sou_8, R.drawable.tile_sou_9
+)
+
+/** SVG artwork from https://github.com/samoheen/mahjong-tiles (hongkong/svg), converted to
+ * Android vector drawables. Red fives reuse the plain 5 tile's artwork, distinguished only by
+ * the "0" caption, per the same convention used elsewhere in this app's notation. */
+private fun tileDrawable(suit: Suit, rank: Int): Int = when (suit) {
+    Suit.MAN -> MAN_DRAWABLES[rank - 1]
+    Suit.PIN -> PIN_DRAWABLES[rank - 1]
+    Suit.SOU -> SOU_DRAWABLES[rank - 1]
+    Suit.HONOR -> when (rank) {
+        1 -> R.drawable.tile_wind_east
+        2 -> R.drawable.tile_wind_south
+        3 -> R.drawable.tile_wind_west
+        4 -> R.drawable.tile_wind_north
+        5 -> R.drawable.tile_dragon_white
+        6 -> R.drawable.tile_dragon_green
+        else -> R.drawable.tile_dragon_red
     }
-    return String(Character.toChars(codepoint))
 }
 
 private fun tileCaption(suit: Suit, rank: Int): String = when (suit) {
@@ -100,16 +113,6 @@ private fun suitSuffix(suit: Suit): String = when (suit) {
     Suit.HONOR -> ""
 }
 
-/** A distinct color per suit so tiles are easy to tell apart at a glance, independent of the glyph. */
-private fun suitTint(suit: Suit): Color = when (suit) {
-    Suit.MAN -> Color(0xFFC62828) // red — characters
-    Suit.PIN -> Color(0xFF1565C0) // blue — circles/dots
-    Suit.SOU -> Color(0xFF2E7D32) // green — bamboos
-    Suit.HONOR -> Color(0xFF424242) // dark grey — winds/dragons
-}
-
-private val redFiveTint = Color(0xFFD50000)
-
 @Composable
 fun TileGridPicker(state: HandBuilderState, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
@@ -118,11 +121,13 @@ fun TileGridPicker(state: HandBuilderState, modifier: Modifier = Modifier) {
             SelectedHandTray(state)
         }
         Divider()
-        SuitRow(Suit.MAN, state)
-        SuitRow(Suit.PIN, state)
-        SuitRow(Suit.SOU, state)
-        RedFiveRow(state)
-        HonorRow(state)
+
+        TileSection(title = "Chinese Number", tiles = (1..9).map { Suit.MAN to it }, state = state)
+        TileSection(title = "Bamboo", tiles = (1..9).map { Suit.SOU to it }, state = state)
+        TileSection(title = "Dot", tiles = (1..9).map { Suit.PIN to it }, state = state)
+        TileSection(title = "Dragon", tiles = listOf(Suit.HONOR to 5, Suit.HONOR to 6, Suit.HONOR to 7), state = state)
+        TileSection(title = "Winds", tiles = (1..4).map { Suit.HONOR to it }, state = state)
+        RedFiveSection(state)
 
         if (state.selected.size == 14) {
             Divider(Modifier.padding(vertical = 8.dp))
@@ -132,67 +137,55 @@ fun TileGridPicker(state: HandBuilderState, modifier: Modifier = Modifier) {
     }
 }
 
+/** Renders a labeled group of tiles, wrapped into rows of at most 5. */
+@Composable
+private fun TileSection(title: String, tiles: List<Pair<Suit, Int>>, state: HandBuilderState) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        tiles.chunked(5).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+                row.forEach { (suit, rank) ->
+                    val count = state.totalCountOf(suit, rank)
+                    TileButton(
+                        drawableRes = tileDrawable(suit, rank),
+                        caption = tileCaption(suit, rank),
+                        count = count,
+                        onClick = { state.add(Tile(suit, rank)) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RedFiveSection(state: HandBuilderState) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text("Red 5", style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+            listOf(Suit.MAN, Suit.PIN, Suit.SOU).forEach { suit ->
+                val count = state.countOf(suit, 5, red = true)
+                TileButton(
+                    drawableRes = tileDrawable(suit, 5),
+                    caption = "0${suitSuffix(suit)}",
+                    count = count,
+                    onClick = { state.add(Tile(suit, 5, isRedFive = true)) }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SelectedHandTray(state: HandBuilderState) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         state.selected.sortedWith(compareBy({ it.suit.ordinal }, { it.rank }, { !it.isRedFive })).forEach { tile ->
             val isWinning = state.winningTile?.let { it.suit == tile.suit && it.rank == tile.rank } == true
-            val tint = if (tile.isRedFive) redFiveTint else suitTint(tile.suit)
             TileChip(
-                glyph = tileGlyph(tile.suit, tile.rank),
+                drawableRes = tileDrawable(tile.suit, tile.rank),
                 caption = if (tile.isRedFive) "0${suitSuffix(tile.suit)}" else tileCaption(tile.suit, tile.rank),
-                tint = tint,
                 highlighted = isWinning,
                 onClick = { state.removeOne(tile.suit, tile.rank, tile.isRedFive) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun SuitRow(suit: Suit, state: HandBuilderState) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-        for (rank in 1..9) {
-            val count = state.totalCountOf(suit, rank)
-            TileButton(
-                glyph = tileGlyph(suit, rank),
-                caption = tileCaption(suit, rank),
-                tint = suitTint(suit),
-                count = count,
-                onClick = { state.add(Tile(suit, rank)) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RedFiveRow(state: HandBuilderState) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-        Text("Red 5s:", modifier = Modifier.padding(end = 4.dp), style = MaterialTheme.typography.labelMedium)
-        for (suit in listOf(Suit.MAN, Suit.PIN, Suit.SOU)) {
-            val count = state.countOf(suit, 5, red = true)
-            TileButton(
-                glyph = tileGlyph(suit, 5),
-                caption = "0${suitSuffix(suit)}",
-                tint = redFiveTint,
-                count = count,
-                onClick = { state.add(Tile(suit, 5, isRedFive = true)) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun HonorRow(state: HandBuilderState) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(vertical = 4.dp)) {
-        for (rank in 1..7) {
-            val count = state.totalCountOf(Suit.HONOR, rank)
-            TileButton(
-                glyph = tileGlyph(Suit.HONOR, rank),
-                caption = tileCaption(Suit.HONOR, rank),
-                tint = suitTint(Suit.HONOR),
-                count = count,
-                onClick = { state.add(Tile(Suit.HONOR, rank)) }
             )
         }
     }
@@ -205,9 +198,8 @@ private fun WinningTilePicker(state: HandBuilderState) {
         distinctKinds.forEach { (suit, rank) ->
             val isSelected = state.winningTile?.let { it.suit == suit && it.rank == rank } == true
             TileChip(
-                glyph = tileGlyph(suit, rank),
+                drawableRes = tileDrawable(suit, rank),
                 caption = tileCaption(suit, rank),
-                tint = suitTint(suit),
                 highlighted = isSelected,
                 onClick = { state.winningTile = Tile(suit, rank) }
             )
@@ -216,10 +208,10 @@ private fun WinningTilePicker(state: HandBuilderState) {
 }
 
 @Composable
-private fun TileButton(glyph: String, caption: String, tint: Color, count: Int, onClick: () -> Unit) {
+private fun TileButton(drawableRes: Int, caption: String, count: Int, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .width(44.dp)
+            .width(52.dp)
             .clickable(onClick = onClick)
             .background(
                 if (count > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
@@ -230,15 +222,19 @@ private fun TileButton(glyph: String, caption: String, tint: Color, count: Int, 
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(glyph, fontSize = 26.sp, color = tint)
-            Text(caption, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            Image(
+                painter = painterResource(drawableRes),
+                contentDescription = caption,
+                modifier = Modifier.size(width = 28.dp, height = 39.dp)
+            )
+            Text(caption, fontSize = 10.sp)
             if (count > 0) Text("x$count", fontSize = 9.sp)
         }
     }
 }
 
 @Composable
-private fun TileChip(glyph: String, caption: String, tint: Color, highlighted: Boolean, onClick: () -> Unit) {
+private fun TileChip(drawableRes: Int, caption: String, highlighted: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clickable(onClick = onClick)
@@ -246,11 +242,15 @@ private fun TileChip(glyph: String, caption: String, tint: Color, highlighted: B
                 if (highlighted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
                 RoundedCornerShape(6.dp)
             )
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(glyph, fontSize = 22.sp, color = tint)
+            Image(
+                painter = painterResource(drawableRes),
+                contentDescription = caption,
+                modifier = Modifier.size(width = 24.dp, height = 34.dp)
+            )
             Text(caption, fontSize = 9.sp)
         }
     }
