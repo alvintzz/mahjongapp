@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,6 +113,17 @@ private fun suitSuffix(suit: Suit): String = when (suit) {
     Suit.SOU -> "s"
     Suit.HONOR -> ""
 }
+
+/**
+ * The tile artwork is ink drawn for a physical ivory tile face, so its background must stay a
+ * fixed light color regardless of the app's light/dark theme — using theme-adaptive Material
+ * colors here made the ink nearly invisible in dark mode once the background went dark too.
+ */
+private val TileFaceColor = Color(0xFFF3ECDA)
+private val TileFaceSelectedColor = Color(0xFFE3D6A8)
+private val TileFaceHighlightColor = Color(0xFFFFD54F)
+private val TileBorderColor = Color(0xFF8A7A52)
+private val TileTextColor = Color(0xFF3E2E17)
 
 @Composable
 fun TileGridPicker(state: HandBuilderState, modifier: Modifier = Modifier) {
@@ -214,10 +226,10 @@ private fun TileButton(drawableRes: Int, caption: String, count: Int, onClick: (
             .width(52.dp)
             .clickable(onClick = onClick)
             .background(
-                if (count > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                if (count > 0) TileFaceSelectedColor else TileFaceColor,
                 RoundedCornerShape(6.dp)
             )
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+            .border(1.dp, TileBorderColor, RoundedCornerShape(6.dp))
             .padding(vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -227,8 +239,8 @@ private fun TileButton(drawableRes: Int, caption: String, count: Int, onClick: (
                 contentDescription = caption,
                 modifier = Modifier.size(width = 28.dp, height = 39.dp)
             )
-            Text(caption, fontSize = 10.sp)
-            if (count > 0) Text("x$count", fontSize = 9.sp)
+            Text(caption, color = TileTextColor, fontSize = 10.sp)
+            if (count > 0) Text("x$count", color = TileTextColor, fontSize = 9.sp)
         }
     }
 }
@@ -239,9 +251,10 @@ private fun TileChip(drawableRes: Int, caption: String, highlighted: Boolean, on
         modifier = Modifier
             .clickable(onClick = onClick)
             .background(
-                if (highlighted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                if (highlighted) TileFaceHighlightColor else TileFaceColor,
                 RoundedCornerShape(6.dp)
             )
+            .border(1.dp, TileBorderColor, RoundedCornerShape(6.dp))
             .padding(horizontal = 6.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -251,7 +264,7 @@ private fun TileChip(drawableRes: Int, caption: String, highlighted: Boolean, on
                 contentDescription = caption,
                 modifier = Modifier.size(width = 24.dp, height = 34.dp)
             )
-            Text(caption, fontSize = 9.sp)
+            Text(caption, color = TileTextColor, fontSize = 9.sp)
         }
     }
 }
