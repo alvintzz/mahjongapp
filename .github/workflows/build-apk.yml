@@ -20,7 +20,7 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          SDKMANAGER=$(find "$ANDROID_HOME" "$ANDROID_SDK_ROOT" /usr/local/lib/android/sdk -maxdepth 3 -name sdkmanager 2>/dev/null | sort -r | head -n1)
+          SDKMANAGER=$(find "$ANDROID_HOME" "$ANDROID_SDK_ROOT" /usr/local/lib/android/sdk -maxdepth 6 -name sdkmanager -type f 2>/dev/null | sort -r | head -n1)
           echo "Using sdkmanager: $SDKMANAGER"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
