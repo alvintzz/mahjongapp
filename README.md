@@ -95,20 +95,49 @@ No cable? Use Wi-Fi debugging instead: **Developer options → Wireless debuggin
 Android Studio `Device Manager → Pair Devices Using Wi-Fi` and follow the on-screen pairing
 code.
 
-### Option B — command line (`gradlew` + `adb`)
+### Option B — command line only, no Android Studio
 
-Requires the [Android command-line tools](https://developer.android.com/studio#command-tools)
-or a full Android Studio install (for `adb`), plus USB debugging enabled on the phone as in
-step 4 above.
+You only need the Android SDK's *command-line tools* (a small zip — not the full IDE) plus
+a JDK 17+. This project's own `gradlew` script downloads Gradle itself automatically, so
+that part needs no separate install.
 
-```bash
-cd mahjongapp
-./gradlew assembleDebug        # builds app/build/outputs/apk/debug/app-debug.apk
-adb devices                    # confirm your phone shows up (accept the USB-debugging prompt if asked)
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
+1. **JDK 17+**: check with `java -version`; if missing, install one (e.g. `sudo apt install
+   openjdk-17-jdk` on Debian/Ubuntu, `brew install openjdk@17` on macOS).
+2. **Android SDK command-line tools**: download the "command line tools only" zip for your
+   OS from the bottom of the [Android Studio downloads page](https://developer.android.com/studio),
+   then:
+   ```bash
+   mkdir -p ~/android-sdk/cmdline-tools
+   unzip commandlinetools-*.zip -d ~/android-sdk/cmdline-tools
+   mv ~/android-sdk/cmdline-tools/cmdline-tools ~/android-sdk/cmdline-tools/latest
 
-Then find "Mahjong Scorer" in your phone's app drawer.
+   export ANDROID_HOME=~/android-sdk
+   export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+   # add both export lines to your ~/.bashrc or ~/.zshrc so they persist
+   ```
+3. **Install the pieces this project needs** (accept the licenses when prompted):
+   ```bash
+   yes | sdkmanager --licenses
+   sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+   ```
+4. **Build the APK**:
+   ```bash
+   cd mahjongapp
+   ./gradlew assembleDebug        # produces app/build/outputs/apk/debug/app-debug.apk
+   ```
+5. **Install it on your phone**: enable Developer Options + USB debugging as described
+   above, plug the phone in (or connect over Wi-Fi debugging), then:
+   ```bash
+   adb devices                    # confirm the phone shows up; accept the on-phone prompt
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
+   ```
+
+Find "Mahjong Scorer" in the phone's app drawer. To reinstall after a code change, just
+rerun steps 4 and 5 — `-r` lets `adb install` overwrite the previous debug build.
+
+Note: this only works on a machine with normal internet access to Google's Maven repo
+(`dl.google.com`) — the sandbox this app was developed in specifically does not have that,
+which is why the build was never run there (see the top of this section).
 
 ### Notes
 
