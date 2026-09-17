@@ -68,7 +68,7 @@ fun RoundScreen(
         .associate { (index, p) -> p.seatIndex to index + 1 }
     val byWind = state.players.associateBy { state.windOf(it.seatIndex) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Mahjong Scorer") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("MahjongCalc") }) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

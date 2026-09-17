@@ -132,7 +132,7 @@ that part needs no separate install.
    adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
 
-Find "Mahjong Scorer" in the phone's app drawer. To reinstall after a code change, just
+Find "MahjongCalc" in the phone's app drawer. To reinstall after a code change, just
 rerun steps 4 and 5 — `-r` lets `adb install` overwrite the previous debug build.
 
 Note: this only works on a machine with normal internet access to Google's Maven repo

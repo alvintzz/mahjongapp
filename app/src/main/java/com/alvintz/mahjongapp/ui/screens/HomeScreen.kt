@@ -34,7 +34,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mahjong Scorer") },
+                title = { Text("MahjongCalc") },
                 actions = {
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -51,7 +51,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Mahjong Scorer", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("MahjongCalc", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(48.dp))
             Button(onClick = onNewGame, modifier = Modifier.fillMaxWidth()) {
                 Text("New Game")
