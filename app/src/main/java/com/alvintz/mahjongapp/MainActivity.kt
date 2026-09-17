@@ -11,11 +11,11 @@ import com.alvintz.mahjongapp.ui.theme.MahjongScorerTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val repository = (application as MahjongApplication).repository
+        val app = application as MahjongApplication
         setContent {
             MahjongScorerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MahjongApp(repository)
+                    MahjongApp(app.repository, app.settingsRepository)
                 }
             }
         }

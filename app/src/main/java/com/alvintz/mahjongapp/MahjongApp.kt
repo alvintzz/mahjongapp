@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.alvintz.mahjong.scoring.RuleSet
 import com.alvintz.mahjongapp.data.GameRepository
+import com.alvintz.mahjongapp.data.SettingsRepository
 import com.alvintz.mahjongapp.ui.screens.CheckWinningTileScreen
 import com.alvintz.mahjongapp.ui.screens.DoraEditScreen
 import com.alvintz.mahjongapp.ui.screens.DrawScreen
@@ -24,12 +25,13 @@ import com.alvintz.mahjongapp.ui.screens.HomeScreen
 import com.alvintz.mahjongapp.ui.screens.PlayerSetupScreen
 import com.alvintz.mahjongapp.ui.screens.RoundScreen
 import com.alvintz.mahjongapp.ui.screens.RuleSelectScreen
+import com.alvintz.mahjongapp.ui.screens.SettingsScreen
 import com.alvintz.mahjongapp.ui.screens.WinEntryScreen
 import com.alvintz.mahjongapp.viewmodel.GameViewModel
 import com.alvintz.mahjongapp.viewmodel.GameViewModelFactory
 
 @Composable
-fun MahjongApp(repository: GameRepository) {
+fun MahjongApp(repository: GameRepository, settingsRepository: SettingsRepository) {
     val viewModel: GameViewModel = viewModel(factory = GameViewModelFactory(repository))
     val navController = rememberNavController()
 
@@ -56,7 +58,14 @@ fun MahjongApp(repository: GameRepository) {
         composable("home") {
             HomeScreen(
                 onNewGame = { navController.navigate("rule_select") },
-                onHistory = { navController.navigate("history") }
+                onHistory = { navController.navigate("history") },
+                onSettings = { navController.navigate("settings") }
+            )
+        }
+        composable("settings") {
+            SettingsScreen(
+                settingsRepository = settingsRepository,
+                onBack = { navController.popBackStack() }
             )
         }
         composable("rule_select") {
@@ -69,7 +78,12 @@ fun MahjongApp(repository: GameRepository) {
                 onSubmit = { names, startingScore ->
                     // Navigation to "round" happens reactively once the new game's async DB
                     // insert completes and `game` becomes non-null (see LaunchedEffect above).
-                    viewModel.startNewGame(ruleSet, names, startingScore)
+                    viewModel.startNewGame(
+                        ruleSet = ruleSet,
+                        playerNames = names,
+                        startingScore = startingScore,
+                        hkMinFanToWin = settingsRepository.hkMinFanToWin.value
+                    )
                 }
             )
         }
